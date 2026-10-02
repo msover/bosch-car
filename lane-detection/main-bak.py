@@ -13,17 +13,15 @@ WINDOW_SCALE = 2  # source is 320x240, scale windows up for visibility
 # wider apart than the frame at the bottom. Fitted to lane.mp4 (static):
 #   - sides meet at the vanishing point (0.50, 0.13): the horizon height at
 #     which lane pairs stay equally spaced far and near; x = camera axis.
-#   - top y = 0.31: highest row that is still floor in 95% of frames.
+#   - top y = 0.31: highest row that is still floor in 95% of frames. In the
+#     rest, walls/objects reaching into the ROI are rejected by the shape
+#     filter and by find_lanes (they start far from the car).
 #   - bottom y = 0.95: lowest row free of the static blob on the vehicle.
 #   - half-width +-2.2 camera heights: keeps ~98% of lane pixels inside.
 ROI = [(0.203, 0.31), (0.797, 0.31), (1.853, 0.95), (-0.853, 0.95)]
 BEV_SIZE = (320, 320)    # (width, height) of the bird's-eye view (BEV)
 
 # ------------------------------------------------------------------ tunables
-MIN_HORIZON = 0.0        # never treat anything above this as floor (fraction of height)
-MAX_HORIZON = 0.50       # the floor never starts lower than this (fraction of height)
-FLOOR_MARGIN = 3         # px kept clear below the detected bottom of walls/objects
-HORIZON_BANDS = 8        # column bands used to fit the (possibly tilted) horizon
 BG_KERNEL_FRAC = 1 / 12  # background kernel size as a fraction of width (> widest line)
 CONTRAST_THRESH = 0.35   # (pixel - local background) / local background
 MIN_AREA_FRAC = 1e-4     # minimum blob area as a fraction of the image area
@@ -43,53 +41,24 @@ COLORS = {"left": (255, 160, 0), "right": (0, 80, 255)}  # BGR
 IGNORED_COLOR = (90, 90, 90)
 
 
-def floor_top(L):
-    """Per-column row where the floor starts.
-
-    Walls, furniture and people are full of near-vertical edges; the floor
-    (seen at a grazing angle) has almost none. Dense vertical-edge regions
-    hanging from the top of the frame are "not floor"; the floor is below them.
-    """
-    h, w = L.shape
-    Lb = cv2.GaussianBlur(L, (3, 3), 0)
-    gx = np.abs(cv2.Sobel(Lb, cv2.CV_16S, 1, 0))
-    gy = np.abs(cv2.Sobel(Lb, cv2.CV_16S, 0, 1))
-    vert = ((gx > 40) & (gx > 3 * gy)).astype(np.uint8)
-    vert = cv2.morphologyEx(vert, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))  # texture -> solid
-
-    # Only regions touching the top edge count, so an isolated near-vertical
-    # stretch of lane line can't pull the horizon down.
-    _, lab, stats, _ = cv2.connectedComponentsWithStats(vert)
-    hangs = stats[:, cv2.CC_STAT_TOP] <= 2
-    hangs[0] = False  # background
-    hanging = np.take(hangs, lab)  # np.take: much faster than hangs[lab] here
-    top = np.where(hanging.any(0), h - hanging[::-1].argmax(0), 0).astype(np.float32)
-
-    # Sparse wall texture leaves gaps: fit a line through the lowest point of
-    # each column band. Theil-Sen (median of pairwise slopes) ignores the odd
-    # band where a pole or a leg reaches down further.
-    bands = np.array_split(np.arange(w), HORIZON_BANDS)
-    bx = np.array([b.mean() for b in bands])
-    by = np.array([top[b].max() for b in bands])
-    line = np.zeros(w, np.float32)
-    ok = by > 0
-    if ok.sum() >= 3:
-        bx, by = bx[ok], by[ok]
-        i, j = np.triu_indices(len(bx), 1)
-        slope = np.median((by[j] - by[i]) / (bx[j] - bx[i]))
-        line = slope * np.arange(w) + np.median(by - slope * bx)
-
-    # Objects standing on the floor still cut into it locally.
-    local = cv2.dilate(top[None, :], np.ones((1, 9), np.uint8))[0]
-    top = np.maximum(line, local) + FLOOR_MARGIN
-    return np.clip(top, int(h * MIN_HORIZON), int(h * MAX_HORIZON)).astype(int)
-
-
 def roi_transform(w, h):
-    """ROI corners in pixels and the homography mapping them onto the BEV."""
+    """ROI corners in pixels, the homography mapping them onto the BEV, and the
+    BEV mask of pixels that come from inside the frame.
+
+    The mask is eroded to also drop a strip along the frame border: a line cut
+    by the frame edge runs along it and would merge with the lane it touches.
+    """
     src = np.float32([(x * w, y * h) for x, y in ROI])
     bw, bh = BEV_SIZE
-    return src, cv2.getPerspectiveTransform(src, np.float32([(0, 0), (bw, 0), (bw, bh), (0, bh)]))
+    M = cv2.getPerspectiveTransform(src, np.float32([(0, 0), (bw, 0), (bw, bh), (0, bh)]))
+    in_frame = cv2.warpPerspective(np.full((h, w), 255, np.uint8), M, BEV_SIZE, flags=cv2.INTER_NEAREST)
+    return src, M, cv2.erode(in_frame, np.ones((9, 9), np.uint8))
+
+
+def warp_roi(frame, M):
+    """Inverse perspective mapping: the ROI seen from above. Out-of-frame pixels
+    replicate the frame edge, so they don't create a fake dark background."""
+    return cv2.warpPerspective(frame, M, BEV_SIZE, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
 
 
 def draw_roi(frame, src):
@@ -99,44 +68,31 @@ def draw_roi(frame, src):
     return out
 
 
-def process(frame, M):
-    """Lane mask (0/255) in the bird's-eye view of the ROI, from a BGR frame."""
-    h = frame.shape[0]
-    bw, bh = BEV_SIZE
+def process(bev, valid):
+    """Lane mask (0/255) of the BEV image of the ROI; `valid` marks in-frame pixels."""
+    bh, bw = bev.shape[:2]
 
-    # 1. Floor detection needs the walls, so it runs on the full frame; the
-    #    floor mask is warped along with the image, so a wall that drops into
-    #    the ROI (camera pitching up) is masked out, as are out-of-frame pixels.
-    #    Eroding also drops a strip along the frame border: a line cut by the
-    #    frame edge runs along it and would merge with the lane line it touches.
-    L = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)[:, :, 1]
-    floor = (np.arange(h)[:, None] >= floor_top(L)).astype(np.uint8) * 255
-    valid = cv2.warpPerspective(floor, M, BEV_SIZE, flags=cv2.INTER_NEAREST)
-    valid = cv2.erode(valid, np.ones((9, 9), np.uint8))
+    # 1. Lightness only; a small median blur removes glare sparkle.
+    L = cv2.medianBlur(cv2.cvtColor(bev, cv2.COLOR_BGR2HLS)[:, :, 1], 3)
 
-    # 2. Lightness only; a small median blur removes glare sparkle. Replicating
-    #    the frame edge into out-of-frame pixels avoids a fake dark background.
-    L = cv2.warpPerspective(L, M, BEV_SIZE, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-    L = cv2.medianBlur(L, 3)
-
-    # 3. Local background: an opening removes bright things narrower than the
+    # 2. Local background: an opening removes bright things narrower than the
     #    kernel (paint); glare is wide, so it stays in the background.
     k = max(15, int(bw * BG_KERNEL_FRAC) | 1)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
     bg = cv2.morphologyEx(L, cv2.MORPH_OPEN, kernel, borderType=cv2.BORDER_REPLICATE)
     bg = cv2.GaussianBlur(bg, (k, k), 0).astype(np.float32)
 
-    # 4. Relative contrast: sparkle in glare is a small step on a bright
+    # 3. Relative contrast: sparkle in glare is a small step on a bright
     #    background (rejected), paint on dark floor a big step on a dark one.
     mask = ((L - bg) / (bg + 20.0) > CONTRAST_THRESH).astype(np.uint8) * 255
     mask &= valid
 
-    # 5. Fill small holes inside strips. (No opening: it would erase thin
+    # 4. Fill small holes inside strips. (No opening: it would erase thin
     #    lines; specks are dropped by the area filter below instead.)
     small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, small, iterations=2)
 
-    # 6. Shape filter: keep blobs that look like paint strips. Paint has
+    # 5. Shape filter: keep blobs that look like paint strips. Paint has
     #    ~constant width in the BEV, so wide blobs (glare, wall bases) are out.
     dist = cv2.distanceTransform(mask, cv2.DIST_L2, 3)  # half-width of strips
     n, lab, stats, _ = cv2.connectedComponentsWithStats(mask)
@@ -247,7 +203,7 @@ def main():
     period = 1 / (cap.get(cv2.CAP_PROP_FPS) or 30)
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    src, M = roi_transform(w, h)
+    src, M, valid = roi_transform(w, h)
     M_inv = np.linalg.inv(M)
 
     for name, (ww, wh) in (("Original + ROI", (w, h)), ("ROI + processing", BEV_SIZE)):
@@ -262,7 +218,9 @@ def main():
             if not ok:  # end of video: loop back to start
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 continue
-            image, bev = draw_lanes(draw_roi(frame, src), *find_lanes(process(frame, M)), M_inv)
+            roi = warp_roi(frame, M)                        # 1. ROI first,
+            labels, lanes = find_lanes(process(roi, valid))  # 2. then everything on it
+            image, bev = draw_lanes(draw_roi(frame, src), labels, lanes, M_inv)
             cv2.imshow("Original + ROI", image)
             cv2.imshow("ROI + processing", bev)
 
