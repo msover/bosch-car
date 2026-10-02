@@ -1,0 +1,47 @@
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+    --aspect-ratio: 1.777777777777778;
+    --cluster-width: 80vw;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --cluster-width: 100vw;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html { 
+    height: 100%;
+    overflow-y: scroll; /* Always show scrollbar to prevent layout shift */
+    scrollbar-gutter: stable; /* Modern browsers: reserve scrollbar space */
+}
+
+body {
+    height: 100%;
+}
+
+body { 
+    font-family: "poppins", sans-serif;
+    /* background: radial-gradient(circle at bottom, #151618, #222831); */
+    background: #222831;
+    color: #f0e5fe;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app-root {
+    width: auto;
+    height: 100%;
+}
+
+/* 
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; } */

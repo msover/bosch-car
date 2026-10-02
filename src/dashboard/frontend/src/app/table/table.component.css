@@ -1,0 +1,458 @@
+/* Copyright (c) 2019, Bosch Engineering Center Cluj and BFMC orginazers
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ 1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+
+/* Responsive Table */
+.my-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-left: 0.1vw solid gray;
+  border-right: 0.1vw solid gray;
+  border-bottom: 0.1vw solid gray;
+}
+
+.header {
+  border-bottom: 0.1vw solid gray;
+  padding: 0.8vw;
+  font-size: 1vw;
+  text-align: center;
+}
+
+.cell {
+  padding: 0.8vw;
+  font-size: 1vw; 
+  text-align: center;
+  vertical-align: middle;
+  border: none;
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  max-width: 150px; 
+}
+
+.cell.value {
+  font-size: 1vw !important;
+}
+
+
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap; 
+}
+
+.full-width-button {
+  flex: 1;
+  padding: 1vw;
+  margin: 0.5vw;
+  font-size: 1vw;
+  background-color: #a77cec;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.full-width-button:hover {
+  background-color: #6497b1; 
+}
+
+/* Responsive Slider */
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.layer-front,
+.layer-back {
+  margin: 0 1vw;
+}
+
+input[type="range"] {
+  flex-grow: 1;
+  margin: 0 1vw;
+}
+
+/* Mobile Card Layout */
+.mobile-cards {
+  display: none;
+}
+
+.card {
+  border-left: 0.1vw solid gray;
+  border-right: 0.1vw solid gray;
+  border-bottom: 0.1vw solid gray;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.card.config-hidden {
+  display: none;
+}
+
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8vw;
+  min-height: auto;
+}
+
+.card-label {
+  font-weight: bold;
+  flex: 0 0 40%;
+  text-align: left;
+  font-size: 1vw;
+}
+
+.card-value {
+  flex: 1;
+  text-align: right;
+  font-size: 1vw;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.card-value.value {
+  font-size: 1vw !important;
+}
+
+.card-value.value {
+  position: relative;
+}
+
+
+
+.mobile-slider {
+  flex-direction: column;
+  width: 100%;
+}
+
+.mobile-slider .layer-front,
+.mobile-slider .layer-back {
+  margin: 0.25rem 0;
+  text-align: center;
+}
+
+.mobile-slider input[type="range"] {
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.card-value select {
+  width: 100%;
+  max-width: 150px;
+  padding: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.card-value input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+  .desktop-table {
+    display: none;
+  }
+  
+  .mobile-cards {
+    display: block;
+  }
+  
+  .header, .cell {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+  
+  .cell.value {
+    font-size: 0.8rem !important;
+  }
+
+  .slider-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .layer-front,
+  .layer-back {
+    margin: 0.5rem 0;
+  }
+
+  input[type="range"] {
+    margin: 0.5rem 0;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .full-width-button {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    padding: 0.8rem;
+  }
+
+  .card-label {
+    font-size: 0.8rem;
+  }
+  
+  .card-value {
+    font-size: 0.8rem;
+  }
+  
+  .card-value.value {
+    font-size: 0.8rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header, .cell {
+    font-size: 0.7rem;
+    padding: 0.4rem;
+  }
+  
+  .cell.value {
+    font-size: 0.7rem !important;
+  }
+
+  .full-width-button {
+    font-size: 0.8rem;
+    padding: 0.7rem;
+  }
+  
+  .card {
+    padding: 0;
+    margin-bottom: 0;
+  }
+  
+  .card-label {
+    font-size: 0.8rem;
+    flex: 0 0 45%;
+  }
+  
+  .card-value {
+    font-size: 0.8rem;
+  }
+  
+  .card-value.value {
+    font-size: 0.8rem !important;
+  }
+  
+  .card-row {
+    padding: 0.4rem;
+  }
+}
+
+/* Additional responsive improvements */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .header, .cell {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+  }
+  
+  .cell.value {
+    font-size: 0.9rem !important;
+  }
+  
+  .full-width-button {
+    font-size: 0.95rem;
+  }
+}
+
+/* Ensure table doesn't overflow on medium screens */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .my-table {
+    font-size: 0.85rem;
+  }
+  
+  .cell {
+    max-width: 120px;
+  }
+}
+
+/* Ultra-wide screen adjustments */
+@media (min-width: 1920px) {
+  .header, .cell {
+    font-size: 0.8vw;
+    padding: 0.6vw;
+  }
+  
+  .cell.value {
+    font-size: 0.8vw !important;
+  }
+  
+  .full-width-button {
+    font-size: 0.8vw;
+    padding: 0.8vw;
+  }
+}
+
+:host {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: "poppins", sans-serif;
+}
+
+.desktop-table,
+.mobile-cards {
+  margin: 10px;
+}
+
+.my-table {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgb(45, 54, 58);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.header {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cell {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 11px;
+}
+
+.cell.value {
+  color: rgba(125, 249, 255, 0.9);
+  font-size: 11px !important;
+  font-weight: 560;
+}
+
+.my-table tbody tr:last-child .cell {
+  border-bottom: 0;
+}
+
+.my-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+select {
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 11px;
+}
+
+select option {
+  background: rgb(45, 54, 58);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #48c7ce;
+}
+
+input[type="range"] {
+  accent-color: #48c7ce;
+}
+
+.layer-front,
+.layer-back {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+}
+
+.button-group {
+  gap: 8px;
+  margin: 8px 10px 10px;
+}
+
+.full-width-button {
+  min-height: 30px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(125, 249, 255, 0.28);
+  border-radius: 6px;
+  background: rgba(125, 249, 255, 0.06);
+  color: #9cf7ff;
+  font-size: 11px;
+  font-weight: 600;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.full-width-button:hover {
+  border-color: rgba(125, 249, 255, 0.5);
+  background: rgba(125, 249, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.card {
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgb(45, 54, 58);
+}
+
+.card-row {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.card-row:last-child {
+  border-bottom: 0;
+}
+
+.card-label {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.card-value {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 11px;
+}
+
+.card-value.value {
+  color: rgba(125, 249, 255, 0.9);
+  font-size: 11px !important;
+  font-weight: 560;
+}

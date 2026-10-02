@@ -1,0 +1,127 @@
+.console-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.console-window {
+    width: min(1120px, 95vw);
+    height: min(800px, 90vh);
+    background: rgb(45, 54, 58);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Courier New', Courier, monospace;
+    padding: clamp(10px, 1.2vw, 14px);
+    overflow: hidden;
+    position: relative;
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 30px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    margin-bottom: 6px;
+}
+
+.console-header h3 {
+    margin: 0;
+    font-size: clamp(15px, 1.7vw, 18px);
+    color: rgba(255, 255, 255, 0.94);
+    font-weight: 560;
+    font-family: "poppins", sans-serif;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.icon-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.72);
+    width: 26px;
+    min-width: 26px;
+    min-height: 28px;
+    padding: 0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.icon-btn svg {
+    fill: currentColor;
+    width: 13px;
+    height: 13px;
+}
+
+.icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #fff;
+}
+
+.console-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 9px;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    background-color: rgb(35, 42, 45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.86);
+    font-variant-numeric: tabular-nums;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(125, 249, 255, 0.24) transparent;
+}
+
+.log-line {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+}
+
+.log-line:last-child {
+    border-bottom: 0;
+}
+
+/* Scrollbar styling */
+.console-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.console-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.console-body::-webkit-scrollbar-thumb {
+    background: rgba(125, 249, 255, 0.24);
+    border-radius: 4px;
+}
+
+.console-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(125, 249, 255, 0.42);
+}

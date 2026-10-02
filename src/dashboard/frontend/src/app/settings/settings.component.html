@@ -1,0 +1,101 @@
+<div *ngIf="open" class="settings-overlay" (click)="handleClose()">
+  <div class="settings-dialog" role="dialog" aria-modal="true" aria-label="Settings" (click)="$event.stopPropagation()">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button class="header-close" (click)="handleClose()" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" />
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-layout">
+        <!-- Left Half - Calibration Section -->
+        <div class="left-section">
+          <div class="subsection calibration-section" [class.calibration-active]="showCalibration">
+            <div class="section-header">
+              <h3>Speed and Steer Calibration</h3>
+              <button *ngIf="!showCalibration" class="btn-primary" (click)="startCalibration()">
+                Open
+              </button>
+              <button *ngIf="showCalibration" class="btn-secondary" (click)="onCalibrationClose()">
+                Close
+              </button>
+            </div>
+
+            <!-- Calibration Component -->
+            <app-calibration [show]="showCalibration" [shouldExit]="requestCalibrationExit" (close)="onCalibrationClose()"
+              (complete)="onCalibrationComplete()" (exited)="onCalibrationExited()">
+            </app-calibration>
+
+            <!-- Calibration Status when not active -->
+            <div *ngIf="!showCalibration" class="calibration-info">
+              <p>Tune steering and speed motor accuracy.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Half - WiFi and Update Management -->
+        <div class="right-section">
+          <!-- WiFi Management -->
+          <div class="subsection">
+            <div class="section-header">
+              <h3>WiFi Management</h3>
+              <button *ngIf="!showWifiSettings" class="btn-primary" (click)="showWifiSettings = true">
+                Open
+              </button>
+              <button *ngIf="showWifiSettings" class="btn-secondary" (click)="showWifiSettings = false">
+                Close
+              </button>
+            </div>
+            <app-wifi-settings *ngIf="showWifiSettings"></app-wifi-settings>
+
+            <!-- Info when closed -->
+            <div *ngIf="!showWifiSettings" class="calibration-info">
+              <p>Add or remove saved WiFi networks.</p>
+            </div>
+          </div>
+
+          <!-- Software & Firmware Updates -->
+          <div class="subsection">
+            <div class="section-header">
+              <h3>Software & Firmware</h3>
+              <button *ngIf="!showUpdateSettings" class="btn-primary" (click)="showUpdateSettings = true">
+                Open
+              </button>
+              <button *ngIf="showUpdateSettings" class="btn-secondary" (click)="showUpdateSettings = false">
+                Close
+              </button>
+            </div>
+            <app-update-settings *ngIf="showUpdateSettings"></app-update-settings>
+
+            <!-- Info when closed -->
+            <div *ngIf="!showUpdateSettings" class="calibration-info">
+              <p>Check and install Brain software and Nucleo firmware updates.</p>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="section-header">
+              <h3>Local Firmware Flash</h3>
+              <button *ngIf="!showLocalFirmwareSettings" class="btn-primary" (click)="showLocalFirmwareSettings = true">
+                Open
+              </button>
+              <button *ngIf="showLocalFirmwareSettings" class="btn-secondary" (click)="showLocalFirmwareSettings = false">
+                Close
+              </button>
+            </div>
+
+            <app-local-firmware-settings *ngIf="showLocalFirmwareSettings"></app-local-firmware-settings>
+
+            <div *ngIf="!showLocalFirmwareSettings" class="calibration-info">
+              <p>Flash any local <code>.bin</code> file already present in <code>runtime/firmware</code>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

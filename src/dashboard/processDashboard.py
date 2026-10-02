@@ -1,0 +1,707 @@
+# Copyright (c) 2019, Bosch Engineering Center Cluj and BFMC orginazers
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+
+# 3. Neither the name of the copyright holder nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, "../../..")
+
+import base64
+import queue
+import psutil
+import json
+import inspect
+import logging
+import os
+import time
+from collections import deque
+from threading import Lock
+
+import cv2
+
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO
+from flask_cors import CORS
+from enum import Enum
+
+from src.utils.messages.messageHandlerSubscriber import messageHandlerSubscriber
+from src.utils.messages.messageHandlerSender import messageHandlerSender
+from src.templates.workerprocess import WorkerProcess
+from src.utils.messages.allMessages import Semaphores
+from src.statemachine.stateMachine import StateMachine
+from src.dashboard.components.calibration import Calibration
+from src.dashboard.components.wifi import WifiManager
+from src.dashboard.components.updates import UpdateManager
+from src.dashboard.components.firmware import FirmwareManager
+
+import src.utils.messages.allMessages as allMessages
+from src.utils.logConfig import get_logger
+from src.utils.sharedFrameBuffer import NotifiedFrameReader
+
+
+class processDashboard(WorkerProcess):
+    """This process handles the dashboard interactions, updating the UI based on the system's state.
+    
+    Args:
+        queueList (dictionary of multiprocessing.queues.Queue): Dictionary of queues where the ID is the type of messages.
+        debugging (bool): Enable debugging mode.
+    """
+    # ====================================== INIT ==========================================
+    def __init__(self, queueList, ready_event=None, debugging = False):
+        self.fast_stream_interval = 0.03
+        self.default_stream_interval = 0.1
+        self.fast_stream_candidates = ("serialCamera", "mainCamera")
+
+        self.cameraFrameReader = NotifiedFrameReader()
+
+        self.running = True
+        self.queueList = queueList
+        self.logger = get_logger("Dashboard")
+        self.debugging = debugging
+
+        # state machine
+        self.stateMachine = StateMachine.get_instance()
+
+        # message handling
+        self.messages = {}
+        self.sendMessages = {}
+        self.messagesAndVals = {}
+
+        # hardware monitoring
+        self.memoryUsage = 0
+        self.cpuCoreUsage = 0
+        self.cpuTemperature = 0
+
+        # heartbeat
+        self.heartbeat_last_sent = time.time()
+        self.heartbeat_retries = 0
+        self.heartbeat_max_retries = 3
+        self.heartbeat_time_between_heartbeats = 20
+        self.heartbeat_time_between_retries = 5
+        self.heartbeat_received = False
+
+        # session management
+        self.sessionActive = False
+        self.activeUser = None
+
+        # serial connection state
+        self.serialConnected = False
+
+        # configuration
+        self.table_state_file = self._get_table_state_path()
+
+        # setup flask and socketio (deferred to run)
+        self.app = None
+        self.socketio = None
+
+        # components
+        self.calibration = None
+        self.wifi = None
+        self.updates = None
+        self.firmware = None
+
+        # initialize message handling
+        self._initialize_messages()
+        self.fast_stream_messages = tuple(
+            name for name in self.fast_stream_candidates if name in self.messages
+        )
+        self.default_stream_messages = tuple(
+            name for name in self.messages if name not in self.fast_stream_messages
+        )
+
+        super(processDashboard, self).__init__(self.queueList, ready_event)
+    
+
+    def _get_table_state_path(self):
+        """Get the path for table state file."""
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.join(base_path, 'src', 'utils', 'table_state.json')
+    
+
+    def _initialize_messages(self):
+        """Initialize message handling systems."""
+        self.get_name_and_vals()
+        self.messagesAndVals.pop("mainCamera", None)
+        self.messagesAndVals.pop("Semaphores", None)
+        self.subscribe()
+    
+
+    def _setup_websocket_handlers(self):
+        """Setup WebSocket event handlers."""
+        self.socketio.on_event('connect', self.handle_console_connect)
+        self.socketio.on_event('message', self.handle_message)
+        self.socketio.on_event('save', self.handle_save_table_state)
+        self.socketio.on_event('load', self.handle_load_table_state)
+
+
+    def _setup_rest_routes(self):
+        """Setup REST API routes for request/response operations."""
+        from flask import request as flask_request
+
+        # WiFi Management
+        @self.app.route('/api/wifi', methods=['GET'])
+        def api_get_wifi_list():
+            return self.wifi.handle_list()
+        
+        @self.app.route('/api/wifi', methods=['POST'])
+        def api_add_wifi():
+            return self.wifi.handle_add(flask_request.get_json())
+
+        @self.app.route('/api/wifi/scan', methods=['GET'])
+        def api_scan_wifi():
+            return self.wifi.handle_scan()
+
+        @self.app.route('/api/wifi/<identifier>', methods=['DELETE'])
+        def api_remove_wifi(identifier):
+            return self.wifi.handle_remove(identifier)
+
+        @self.app.route('/api/wifi/operations/<operation_id>', methods=['GET'])
+        def api_get_wifi_operation(operation_id):
+            return self.wifi.handle_operation(operation_id)
+        
+        # Table State Management
+        @self.app.route('/api/table', methods=['GET'])
+        def api_load_table():
+            try:
+                with open(self.table_state_file, 'r') as json_file:
+                    data = json.load(json_file)
+                return jsonify({'success': True, 'data': data})
+            except FileNotFoundError:
+                return jsonify({'success': False, 'error': 'No saved table state found'}), 404
+            except json.JSONDecodeError:
+                return jsonify({'success': False, 'error': 'Invalid JSON in saved file'}), 500
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+        
+        @self.app.route('/api/table', methods=['POST'])
+        def api_save_table():
+            try:
+                data = flask_request.get_json()
+                os.makedirs(os.path.dirname(self.table_state_file), exist_ok=True)
+                with open(self.table_state_file, 'w') as json_file:
+                    json.dump(data, json_file, indent=4)
+                return jsonify({'success': True, 'message': 'Table state saved'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        # Calibration Measurement Persistence
+        @self.app.route('/api/calibration/measurements', methods=['GET'])
+        def api_list_calibration_measurements():
+            try:
+                measurements = self.calibration.list_saved_measurements()
+                return jsonify({'success': True, 'measurements': measurements})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/api/calibration/measurements', methods=['POST'])
+        def api_save_calibration_measurements():
+            try:
+                data = flask_request.get_json() or {}
+                result = self.calibration.save_measurements(
+                    data.get('name', ''),
+                    data.get('requestedSteeringLimit')
+                )
+                return jsonify({
+                    'success': True,
+                    'message': 'Calibration measurements saved',
+                    **result
+                })
+            except ValueError as e:
+                return jsonify({'success': False, 'error': str(e)}), 400
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/api/calibration/measurements/load', methods=['POST'])
+        def api_load_calibration_measurements():
+            try:
+                data = flask_request.get_json() or {}
+                result = self.calibration.load_measurements(data.get('id', ''))
+                return jsonify({
+                    'success': True,
+                    'message': 'Calibration measurements loaded',
+                    **result
+                })
+            except (ValueError, FileNotFoundError) as e:
+                return jsonify({'success': False, 'error': str(e)}), 400
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+        
+        # Serial Connection Status
+        @self.app.route('/api/serial/status', methods=['GET'])
+        def api_serial_status():
+            return jsonify({'success': True, 'connected': self.serialConnected})
+        
+        # Codebase Update Management
+        @self.app.route('/api/update/check', methods=['GET'])
+        def api_check_updates():
+            return self.updates.handle_check()
+        
+        @self.app.route('/api/update/pull', methods=['POST'])
+        def api_pull_updates():
+            return self.updates.handle_pull()
+
+        @self.app.route('/api/update/force', methods=['POST'])
+        def api_force_update():
+            return self.updates.handle_force_pull()
+
+        @self.app.route('/api/update/adopt', methods=['POST'])
+        def api_adopt_update():
+            return self.updates.handle_adopt()
+
+        @self.app.route('/api/update/branches', methods=['GET'])
+        def api_update_branches():
+            return self.updates.handle_list_branches()
+
+        @self.app.route('/api/update/branch', methods=['POST'])
+        def api_set_update_branch():
+            data = flask_request.get_json() or {}
+            return self.updates.handle_set_branch(data.get('branch', ''))
+
+        @self.app.route('/api/update/source', methods=['GET'])
+        def api_get_update_source():
+            return self.updates.handle_get_source()
+
+        @self.app.route('/api/update/source', methods=['POST'])
+        def api_set_update_source():
+            data = flask_request.get_json() or {}
+            return self.updates.handle_set_source(data.get('url', ''))
+
+        @self.app.route('/api/update/token', methods=['GET'])
+        def api_get_update_token():
+            return self.updates.handle_get_token()
+
+        @self.app.route('/api/update/token', methods=['POST'])
+        def api_set_update_token():
+            data = flask_request.get_json() or {}
+            return self.updates.handle_set_token(data.get('token', ''))
+
+        @self.app.route('/api/update/token', methods=['DELETE'])
+        def api_delete_update_token():
+            return self.updates.handle_delete_token()
+        
+        # Firmware Update Management
+        @self.app.route('/api/firmware/check', methods=['GET'])
+        def api_check_firmware():
+            return self.firmware.handle_check()
+        
+        @self.app.route('/api/firmware/download', methods=['POST'])
+        def api_download_firmware():
+            return self.firmware.handle_download()
+
+        @self.app.route('/api/firmware/files', methods=['GET'])
+        def api_list_firmware_files():
+            return self.firmware.handle_list_local_files()
+
+        @self.app.route('/api/firmware/flash', methods=['POST'])
+        def api_flash_firmware():
+            return self.firmware.handle_flash()
+
+        @self.app.route('/api/firmware/flash-selected', methods=['POST'])
+        def api_flash_selected_firmware():
+            data = flask_request.get_json() or {}
+            return self.firmware.handle_flash_selected(data.get('filename', ''))
+
+        @self.app.route('/api/firmware/source', methods=['GET'])
+        def api_get_firmware_source():
+            return self.firmware.handle_get_source()
+
+        @self.app.route('/api/firmware/source', methods=['POST'])
+        def api_set_firmware_source():
+            data = flask_request.get_json() or {}
+            return self.firmware.handle_set_source(data.get('url', ''))
+
+        @self.app.route('/api/firmware/repo-files', methods=['GET'])
+        def api_list_firmware_repo_bins():
+            return self.firmware.handle_list_repo_bins()
+
+        @self.app.route('/api/firmware/file', methods=['POST'])
+        def api_set_firmware_file():
+            data = flask_request.get_json() or {}
+            return self.firmware.handle_set_file(data.get('file_path', ''))
+
+        @self.app.route('/api/firmware/branches', methods=['GET'])
+        def api_list_firmware_branches():
+            return self.firmware.handle_list_branches()
+
+        @self.app.route('/api/firmware/branch', methods=['POST'])
+        def api_set_firmware_branch():
+            data = flask_request.get_json() or {}
+            return self.firmware.handle_set_branch(data.get('branch', ''))
+
+        @self.app.route('/api/firmware/token', methods=['GET'])
+        def api_get_firmware_token():
+            return self.firmware.handle_get_token()
+
+        @self.app.route('/api/firmware/token', methods=['POST'])
+        def api_set_firmware_token():
+            data = flask_request.get_json() or {}
+            return self.firmware.handle_set_token(data.get('token', ''))
+
+        @self.app.route('/api/firmware/token', methods=['DELETE'])
+        def api_delete_firmware_token():
+            return self.firmware.handle_delete_token()
+
+
+    def _spawn_after(self, delay, target, *args):
+        """Run target(*args) after delay seconds in a SocketIO background task."""
+        def runner():
+            self.socketio.sleep(delay)
+            target(*args)
+        self.socketio.start_background_task(runner)
+
+
+    def _start_background_tasks(self):
+        """Start background monitoring tasks."""
+        psutil.cpu_percent(interval=1, percpu=False)
+
+        self.socketio.start_background_task(self.update_hardware_data)
+        self.socketio.start_background_task(self.send_continuous_messages, self.fast_stream_messages, self.fast_stream_interval)
+        self.socketio.start_background_task(self.send_continuous_messages, self.default_stream_messages, self.default_stream_interval)
+        self.socketio.start_background_task(self.send_hardware_data_to_frontend)
+        self.socketio.start_background_task(self.send_heartbeat)
+        self.socketio.start_background_task(self.stream_console_logs)
+
+    def handle_console_connect(self, auth=None):
+        """Replay terminal lines emitted before this browser connected."""
+        with self.console_history_lock:
+            history = list(self.console_history)
+
+        for msg in history:
+            self.socketio.emit('console_log', {'data': msg}, room=request.sid)
+
+
+
+    def stream_console_logs(self):
+        """Monitor the Log queue and emit messages to frontend."""
+        log_queue = self.queueList.get("Log")
+        if log_queue is None:
+            return
+
+        while self.running:
+            try:
+                msg = log_queue.get(timeout=0.1)
+                with self.console_history_lock:
+                    self.console_history.append(msg)
+                self.socketio.emit('console_log', {'data': msg})
+                self.socketio.sleep(0)
+            except queue.Empty:
+                pass
+            except Exception as e:
+                if self.debugging:
+                    self.logger.error(f"Error streaming logs: {e}")
+                self.socketio.sleep(1)
+
+
+    # ===================================== STOP ==========================================
+    def stop(self):
+        """Stop the dashboard process."""
+        super(processDashboard, self).stop()
+        self.running = False
+
+
+    # ===================================== RUN ==========================================
+    def run(self):
+        """Apply the initializing method."""
+        repo_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        # silence Werkzeug's per-request access logging
+        self._configure_dashboard_output()
+        self.console_history = deque(maxlen=500)
+        self.console_history_lock = Lock()
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
+        # silence Flask's dev-server startup banner (" * Serving Flask app...",
+        # " * Debug mode: ...") which is printed directly, not via logging.
+        import flask.cli
+        flask.cli.show_server_banner = lambda *args, **kwargs: None
+
+        # setup flask and socketio
+        self.app = Flask(__name__)
+        self.socketio = SocketIO(self.app, cors_allowed_origins="*", async_mode='threading')
+        CORS(self.app, supports_credentials=True)
+
+        # components
+        self.calibration = Calibration(self.queueList, self.socketio)
+        self.wifi = WifiManager(repo_path)
+        self.updates = UpdateManager(repo_path)
+        self.firmware = FirmwareManager(repo_path)
+
+        self._setup_websocket_handlers()
+        self._setup_rest_routes()
+        self._start_background_tasks()
+
+        if self.ready_event:
+            self.ready_event.set()
+
+        self.socketio.run(self.app, host='0.0.0.0', port=5005, allow_unsafe_werkzeug=True)
+
+
+    def subscribe(self):
+        """Subscribe function. In this function we make all the required subscribe to process gateway."""
+        for name, enum in self.messagesAndVals.items():
+            if enum["owner"] != "Dashboard":
+                subscriber = messageHandlerSubscriber(self.queueList, enum["enum"], "lastOnly", True)
+                self.messages[name] = {"obj": subscriber}
+            else:
+                sender = messageHandlerSender(self.queueList, enum["enum"])
+                self.sendMessages[str(name)] = {"obj": sender}
+
+        subscriber = messageHandlerSubscriber(self.queueList, Semaphores, "fifo", True)
+        self.messages["Semaphores"] = {"obj": subscriber}
+
+
+    def get_name_and_vals(self):
+        """Extract all message names and values for processing."""
+        classes = inspect.getmembers(allMessages, inspect.isclass)
+        for name, cls in classes:
+            if name != "Enum" and issubclass(cls, Enum):
+                self.messagesAndVals[name] = {"enum": cls, "owner": cls.Owner.value} # type: ignore
+
+
+    def send_message_to_brain(self, dataName, dataDict):
+        """Send messages to the backend."""
+        if dataName in self.sendMessages:
+            self.sendMessages[dataName]["obj"].send(dataDict.get("Value"))
+
+
+    def handle_message(self, data):
+        """Handle incoming WebSocket messages."""
+        if self.debugging:
+            self.logger.info("Received message: " + str(data))
+
+        try:
+            dataDict = json.loads(data)
+            dataName = dataDict["Name"]
+            socketId = request.sid
+
+            if dataName == "SessionAccess":
+                self.handle_single_user_session(socketId)
+            elif self.sessionActive and self.activeUser != socketId:
+                get_logger("Dashboard").warning(f"Message received from unauthorized user {socketId}")
+                return
+
+            if dataName == "Heartbeat":
+                self.handle_heartbeat()
+            elif dataName == "SessionEnd":
+                self.handle_session_end(socketId)
+            elif dataName == "DrivingMode":
+                self.handle_driving_mode(dataDict)
+            elif dataName == "Calibration":
+                self.handle_calibration(dataDict, socketId)
+            elif dataName == "GetCurrentSerialConnectionState":
+                self.handle_get_current_serial_connection_state(socketId)
+            else:
+                self.send_message_to_brain(dataName, dataDict)
+
+            self.socketio.emit('response', {'data': 'Message received: ' + str(data)}, room=socketId) # type: ignore
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse JSON message: {e}")
+            self.socketio.emit('response', {'error': 'Invalid JSON format'}, room=socketId) # type: ignore
+
+
+    def handle_heartbeat(self):
+        """Handle heartbeat message."""
+        self.heartbeat_retries = 0
+        self.heartbeat_last_sent = time.time()
+        self.heartbeat_received = True
+
+
+    def handle_driving_mode(self, dataDict):
+        """Handle driving mode change."""
+        self.stateMachine.request_mode(f"dashboard_{dataDict['Value']}_button")
+
+
+    def handle_calibration(self, dataDict, socketId):
+        """Handle calibration signals from frontend."""
+        self.calibration.handle_calibration_signal(dataDict, socketId)
+
+
+    def handle_get_current_serial_connection_state(self, socketId):
+        """Handle getting the current serial connection state."""
+        self.socketio.emit('current_serial_connection_state', {'data': self.serialConnected}, room=socketId)
+
+
+    def handle_single_user_session(self, socketId):
+        """Handle session access for a single user."""
+        if not self.sessionActive:
+            self.sessionActive = True
+            self.activeUser = socketId
+            get_logger("Dashboard").info(f"Session access granted to {socketId}")
+            self.socketio.emit('session_access', {'data': True}, room=socketId)
+            self.send_message_to_brain("RequestSteerLimits", {"Value": True})
+        elif self.activeUser == socketId:
+            self.socketio.emit('session_access', {'data': True}, room=socketId)
+            self.send_message_to_brain("RequestSteerLimits", {"Value": True})
+        else:
+            get_logger("Dashboard").info(f"Session access denied to {socketId}")
+            self.socketio.emit('session_access', {'data': False}, room=socketId)
+
+
+    def handle_session_end(self, socketId):
+        """Handle session end for the single user."""
+        if self.sessionActive and self.activeUser == socketId:
+            self.sessionActive = False
+            self.activeUser = None
+
+
+    def handle_save_table_state(self, data):
+        """Handle saving the table state to a JSON file."""
+        if self.debugging:
+            self.logger.info("Received save message: " + data)
+
+        try:
+            dataDict = json.loads(data)
+            os.makedirs(os.path.dirname(self.table_state_file), exist_ok=True)
+            
+            with open(self.table_state_file, 'w') as json_file:
+                json.dump(dataDict, json_file, indent=4)
+                
+            self.socketio.emit('response', {'data': 'Table state saved successfully'})
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse JSON for save: {e}")
+            self.socketio.emit('response', {'error': 'Invalid JSON format'})
+        except OSError as e:
+            self.logger.error(f"Failed to save table state: {e}")
+            self.socketio.emit('response', {'error': 'Failed to save table state'})
+
+
+    def handle_load_table_state(self, data):
+        """Handle loading the table state from a JSON file."""
+        try:
+            with open(self.table_state_file, 'r') as json_file:
+                dataDict = json.load(json_file)
+            self.socketio.emit('loadBack', {'data': dataDict})
+        except FileNotFoundError:
+            self.socketio.emit('response', {'error': 'File not found. Please save the table state first.'})
+        except json.JSONDecodeError:
+            self.socketio.emit('response', {'error': 'Failed to parse JSON data from the file.'})
+        except OSError as e:
+            self.logger.error(f"Failed to load table state: {e}")
+            self.socketio.emit('response', {'error': 'Failed to load table state'})
+
+
+    def update_hardware_data(self):
+        """Monitor and update hardware metrics periodically."""
+        try:
+            self.cpuCoreUsage = psutil.cpu_percent(interval=None, percpu=False)
+        except Exception:
+            self.cpuCoreUsage = 0
+
+        try:
+            self.memoryUsage = psutil.virtual_memory().percent
+        except Exception:
+            self.memoryUsage = 0
+            
+        try:
+            temps = psutil.sensors_temperatures()
+            self.cpuTemperature = round(temps["cpu_thermal"][0].current) if temps.get("cpu_thermal") else 0
+        except Exception:
+            self.cpuTemperature = 0
+
+        self._spawn_after(1, self.update_hardware_data)
+
+
+    def send_heartbeat(self):
+        """Send a heartbeat message to the frontend."""
+        if not self.running:
+            return
+
+        if not self.heartbeat_received and self.sessionActive:
+            self.heartbeat_retries += 1
+            if self.heartbeat_retries < self.heartbeat_max_retries:
+                self.socketio.emit('heartbeat', {'data': 'Heartbeat'})
+            else:
+                get_logger("Dashboard").warning(f"Connection lost with peer {self.activeUser}")
+                self.socketio.emit('heartbeat_disconnect', {'data': 'Heartbeat timeout'})
+                self.sessionActive = False
+                self.activeUser = None
+                self.heartbeat_retries = 0
+
+            self._spawn_after(self.heartbeat_time_between_retries, self.send_heartbeat)
+        else:
+            self.heartbeat_received = False
+            self._spawn_after(self.heartbeat_time_between_heartbeats, self.send_heartbeat)
+
+
+    def send_continuous_messages(self, message_names, interval):
+        """Process and send subscriber messages to the frontend."""
+        if not self.running:
+            return
+
+        for msg in message_names:
+            subscriber = self.messages.get(msg)
+            if subscriber is None:
+                continue
+
+            resp = subscriber["obj"].receive()
+            if resp is not None:
+                if msg == "serialCamera":
+                    # camera messages carry a shared-memory notification, not
+                    # pixels: read the frame and encode it here
+                    self._emitCameraFrame(resp)
+                    continue
+
+                if msg == "SerialConnectionState":
+                    self.serialConnected = resp
+
+                self.socketio.emit(msg, {"value": resp})
+                if self.debugging:
+                    self.logger.info(f"{msg}: {resp}")
+
+        self._spawn_after(interval, self.send_continuous_messages, message_names, interval)
+
+
+    def _emitCameraFrame(self, notification):
+        """Reads the newest camera frame from shared memory, JPEG/base64 encodes
+        it and emits it to the frontend."""
+        try:
+            result = self.cameraFrameReader.read(notification)
+            if result is None:
+                return  # no new frame since the last emit
+            frame, _, _ = result
+
+            _, encoded = cv2.imencode(".jpg", frame)
+            data = base64.b64encode(encoded).decode("utf-8")
+            self.socketio.emit("serialCamera", {"value": data})
+        except Exception:
+            self.logger.exception("Failed to emit the camera frame")
+
+
+    def send_hardware_data_to_frontend(self):
+        """Send hardware monitoring data to the frontend."""
+        if not self.running:
+            return
+
+        self.socketio.emit('memory_channel', {'data': self.memoryUsage})
+        self.socketio.emit('cpu_channel', {
+            'data': {
+                'usage': self.cpuCoreUsage,
+                'temp': self.cpuTemperature
+            }
+        })
+
+        self._spawn_after(1.0, self.send_hardware_data_to_frontend)

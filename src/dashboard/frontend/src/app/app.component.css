@@ -1,0 +1,352 @@
+/* Copyright (c) 2019, Bosch Engineering Center Cluj and BFMC orginazers
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ 1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+
+.main-container {
+  width: 100%;
+  height: 100%;
+}
+
+.cluster-container {
+  width: var(--cluster-width);
+  height: calc(var(--cluster-width) / var(--aspect-ratio));
+  display: flex;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Mobile driving only: fit the fixed-aspect (16:9) dashboard within BOTH the
+   viewport width and height so nothing is clipped, while still using the full
+   width whenever the viewport is taller than 16:9 (only the binding dimension
+   limits the box). Scoped to .fit-viewport so desktop / normal mobile layout
+   is unaffected. dvh reflects the real available height (so we don't waste
+   space the way svh does), and tracks the browser bars showing/hiding. */
+.cluster-container.fit-viewport {
+  width: min(var(--cluster-width), calc(100dvh * var(--aspect-ratio)));
+  height: calc(min(var(--cluster-width), calc(100dvh * var(--aspect-ratio))) / var(--aspect-ratio));
+}
+
+.alert-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10001;
+}
+
+.alert-modal-content {
+  background-color: #ff4444;
+  color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  max-width: 90vw;
+  width: 500px;
+  margin: 20px;
+  animation: modalPulse 2s infinite;
+}
+
+.alert-modal-content h2 {
+  margin: 0 0 15px 0;
+  font-size: clamp(16px, 2vw, 20px);
+}
+
+.alert-modal-content p {
+  margin: 0 0 20px 0;
+  font-size: clamp(12px, 1.6vw, 14px);
+  line-height: 1.4;
+}
+
+.close-btn {
+  padding: clamp(10px, 2.5vw, 12px) clamp(20px, 5vw, 24px);
+  background-color: #ffffff;
+  color: #ff4444;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: clamp(12px, 1.6vw, 14px);
+  font-weight: bold;
+  transition: background-color 0.3s;
+  min-width: 80px;
+}
+
+.close-btn:hover {
+  background-color: #f0f0f0;
+}
+
+@keyframes modalPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Responsive design for different screen sizes */
+@media (max-width: 768px) {
+  .alert-modal-content {
+    padding: 25px 20px;
+    margin: 15px;
+  }
+
+  .alert-modal-content h2 {
+    margin: 0 0 12px 0;
+  }
+
+  .alert-modal-content p {
+    margin: 0 0 18px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .alert-modal-content {
+    padding: 20px 15px;
+    margin: 10px;
+    border-radius: 8px;
+  }
+
+  .alert-modal-content h2 {
+    margin: 0 0 10px 0;
+  }
+
+  .alert-modal-content p {
+    margin: 0 0 15px 0;
+  }
+
+  .close-btn {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 320px) {
+  .alert-modal-content {
+    padding: 15px 10px;
+    margin: 5px;
+  }
+}
+
+.cluster {
+  width: 100%;
+  height: 100%;
+  background-color: rgb(45, 54, 58);
+}
+
+.table {
+  width: 100%;
+  height: 100%;
+}
+
+/* Settings gear overlay anchored to cluster top-right */
+.settings-gear {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.settings-gear:hover {
+  background: none;
+  transform: rotate(45deg) scale(1.1);
+}
+
+.settings-gear svg {
+  fill: currentColor;
+  width: 24px;
+  height: 24px;
+}
+
+.console-toggle {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: none;
+  border: none;
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.console-toggle:hover {
+  background: none;
+  transform: scale(1.1);
+}
+
+.console-toggle svg {
+  /* fill: currentColor; Reverted to stroke for this specific icon */
+  width: 24px;
+  height: 24px;
+}
+
+/* Settings modal removed; handled by SettingsComponent */
+
+.modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: rgb(45, 54, 58);
+  padding: 20px;
+  border-radius: 5px;
+  width: 300px;
+  text-align: center;
+  color: white;
+}
+
+.modal input {
+  margin-bottom: 10px;
+  padding: 5px;
+  width: 100%;
+}
+
+.modal button {
+  padding: 10px;
+  width: 100%;
+  border-radius: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.modal button:hover {
+  background-color: #0056b3;
+}
+
+/* Custom container for notification and modal */
+.custom-modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+}
+
+.backend-popup-notification {
+  min-width: 220px;
+  max-width: 380px;
+  width: 90vw;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  padding: 20px;
+  margin-bottom: 20px;
+  animation: modalPulse 2s infinite;
+}
+
+.backend-popup-notification h2 {
+  margin: 0 0 15px 0;
+  font-size: clamp(15px, 1.9vw, 18px);
+}
+
+.backend-popup-notification p {
+  margin: 0;
+  font-size: clamp(12px, 1.5vw, 14px);
+  line-height: 1.4;
+}
+
+.custom-modal-content {
+  background-color: rgb(45, 54, 58);
+  padding: 20px;
+  border-radius: 5px;
+  width: 300px;
+  text-align: center;
+  color: white;
+}
+
+.custom-modal-content input {
+  margin-bottom: 10px;
+  padding: 5px;
+  width: 100%;
+}
+
+.custom-modal-content button {
+  padding: 10px;
+  width: 100%;
+  border-radius: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  /* Prevent text selection/copy on mobile */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.custom-modal-content button:hover {
+  background-color: #0056b3;
+}

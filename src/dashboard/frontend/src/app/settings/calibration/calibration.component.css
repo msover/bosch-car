@@ -1,0 +1,700 @@
+/* Calibration Modal Styles */
+.calibration-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 1rem 1.5rem 0.75rem 1.5rem;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255,255,255,0.1);
+  min-height: 0;
+}
+
+.step-header {
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+  min-height: 60px;
+}
+
+.step-header h4 {
+  margin: 0 0 1rem 0;
+  font-size: clamp(14px, 1.8vw, 18px);
+  color: #fff;
+  font-weight: 600;
+}
+
+.step-progress {
+  width: 100%;
+  height: 8px;
+  background: rgba(45, 54, 58, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00acc1, #26a69a);
+  border-radius: 5px;
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 1px 3px rgba(0,172,193,0.3);
+  position: relative;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2), transparent);
+  border-radius: 5px 5px 0 0;
+}
+
+/* Step Content Styles */
+.step-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.step-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.step-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.step-content::-webkit-scrollbar-thumb {
+  background: rgba(125, 249, 255, 0.24);
+  border-radius: 4px;
+}
+
+.step-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 249, 255, 0.42);
+}
+
+.step-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 249, 255, 0.24) transparent;
+}
+
+
+
+
+
+.step-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 280px; /* Increased height for a bigger image */
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden; /* Prevent content from spilling out */
+  padding: 0.5rem; /* Add some padding */
+}
+
+.calibration-svg {
+  max-width: 100%;
+  height: 100%; /* Fill the container's height */
+  object-fit: contain;
+  position: absolute;
+  z-index: 2;
+}
+
+.svg-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 180px;
+  z-index: 1;
+}
+
+.svg-placeholder svg {
+  border-radius: 4px;
+}
+
+.step-description {
+  background: rgba(255,255,255,0.05);
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 3px solid #007bff;
+}
+
+.step-description p {
+  margin: 0;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.9);
+}
+
+/* Notification Styles */
+.success-message,
+.error-message {
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  animation: slideIn 0.3s ease-out;
+}
+
+.success-message {
+  background: rgba(82, 210, 115, 0.08);
+  border-left: 3px solid #28a745;
+}
+
+.error-message {
+  background: rgba(255, 179, 138, 0.08);
+  border-left: 3px solid #ffb38a;
+}
+
+.success-message p,
+.error-message p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 600;
+}
+
+.success-message p {
+  color: #28a745;
+}
+
+.error-message p {
+  color: #ffb38a;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Input Styles */
+.step-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inputs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.9);
+}
+
+.form-input,
+.form-select {
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.form-input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+/* Submit button inside inputs */
+.input-submit {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Button Styles */
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: none;
+  text-transform: none;
+  transform: none;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.btn-primary,
+.btn-submit {
+  color: #7df9ff;
+  border-color: rgba(125, 249, 255, 0.22);
+  background: rgba(125, 249, 255, 0.04);
+}
+
+.btn-success {
+  color: #52d273;
+  border-color: rgba(82, 210, 115, 0.22);
+  background: rgba(82, 210, 115, 0.04);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled),
+.btn-success:hover:not(:disabled),
+.btn-submit:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-success:disabled,
+.btn-submit:disabled {
+  color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.form-input:disabled,
+.form-select:disabled {
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(255,255,255,0.4) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255,255,255,0.2) !important;
+}
+
+.step-submit {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Navigation Styles */
+.step-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: auto;
+  margin-bottom: 0.25rem; /* small consistent spacing like left side */
+  flex-shrink: 0;
+  min-height: 50px;
+  /* Keep navigation at bottom of modal */
+  position: relative;
+  background: transparent;
+  z-index: 10;
+}
+
+.step-counter {
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+}
+
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .step-navigation {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    min-height: 70px;
+    padding: 0.25rem;
+    margin: 0 -1rem -0.5rem -1rem;
+  }
+  
+  .step-navigation .step-counter {
+    text-align: center;
+    order: -1;
+  }
+  
+  .calibration-modal {
+    padding: 1rem; /* consistent padding on all sides */
+  }
+  
+  .step-content {
+    gap: 1rem;
+  }
+  
+  .step-visual {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .step-inputs {
+    gap: 0.75rem;
+  }
+  
+  .inputs-container {
+    gap: 0.75rem;
+  }
+  
+  .input-submit,
+  .step-submit {
+    gap: 0.5rem;
+  }
+}
+
+/* Very small screens - ultra-compact button layout */
+@media (max-width: 360px) {
+  .input-submit,
+  .step-submit {
+    gap: 0.25rem;
+  }
+}
+
+/* Very small heights - ensure navigation is always accessible */
+@media (max-height: 500px) {
+  .calibration-modal {
+    padding: 0.75rem;
+  }
+
+  .step-header {
+    margin-bottom: 1rem;
+    min-height: 50px;
+  }
+
+  .step-content {
+    gap: 0.75rem;
+  }
+
+  .step-visual {
+    min-height: 100px;
+  }
+
+  .step-navigation {
+    min-height: 45px;
+    padding-top: 0.25rem;
+    margin-bottom: 0.25rem; /* small consistent spacing like left side */
+  }
+}
+
+/* Polynomial Visualization Styles */
+.polynomial-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.saved-measurements {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.saved-measurements-group {
+  display: grid;
+  gap: 6px;
+}
+
+.saved-measurements-group label {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.saved-measurements-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.saved-measurements-row button {
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.saved-measurements .form-input,
+.saved-measurements .form-select {
+  min-height: 28px;
+  padding: 3px 8px;
+  border-color: rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10.5px;
+}
+
+.saved-measurements .form-select option {
+  background: rgb(45, 54, 58);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.saved-measurements .form-input:focus,
+.saved-measurements .form-select:focus {
+  border-color: rgba(125, 249, 255, 0.38);
+  box-shadow: 0 0 0 2px rgba(125, 249, 255, 0.08);
+}
+
+@media (max-width: 560px) {
+  .saved-measurements-row {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-measurements-row button {
+    width: 100%;
+  }
+}
+
+.chart-container {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chart-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chart-container:hover .zoom-hint {
+  opacity: 1;
+}
+
+.chart-container canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.zoom-hint {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+/* Chart Zoom Modal */
+.chart-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+/* Hide body scrollbar when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.chart-modal-content {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.chart-modal-content canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 1;
+  font-weight: bold;
+}
+
+.chart-modal-close:hover {
+  background: rgba(255, 0, 0, 0.9);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Larger charts on bigger screens */
+@media (min-width: 768px) {
+  .chart-container canvas {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-height: 400px) {
+  .calibration-modal {
+    padding: 0.5rem;
+  }
+
+  .step-header {
+    margin-bottom: 0.75rem;
+    min-height: 40px;
+  }
+
+  .step-content {
+    gap: 0.5rem;
+  }
+
+  .step-visual {
+    min-height: 80px;
+  }
+
+  .step-navigation {
+    min-height: 40px;
+    padding-top: 0.25rem;
+    margin-bottom: 0.25rem; /* small consistent spacing like left side */
+  }
+
+}
+
+/* Compact settings scale shared with Software Update and Local Firmware Upload. */
+.calibration-modal { padding: 9px; border-radius: 7px; }
+.step-header { min-height: 34px; margin-bottom: 8px; }
+.step-header h4 {
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+}
+.step-progress { height: 5px; }
+.step-content { gap: 8px; margin-bottom: 8px; }
+.step-visual { min-height: 180px; padding: 8px; border-radius: 7px; }
+.step-description { padding: 7px 9px; }
+.step-inputs { gap: 8px; }
+.inputs-container { gap: 6px; }
+.input-group { gap: 4px; }
+.input-submit { gap: 6px; margin-top: 2px; }
+.step-submit { gap: 6px; margin-top: 2px; padding-top: 8px; }
+.step-navigation {
+  min-height: 36px;
+  gap: 8px;
+  margin-bottom: 0;
+  padding-top: 8px;
+}
+.step-counter { font-size: 10.5px; }
+.polynomial-charts { gap: 8px; margin: 8px 0; }
+.saved-measurements-row button { min-width: 0; }
+
+@media (max-width: 768px) {
+  .calibration-modal { padding: 9px; }
+  .step-visual { min-height: 120px; }
+  .step-navigation {
+    min-height: 36px;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 0 0;
+  }
+}
+
+@media (max-height: 500px) {
+  .step-visual { min-height: 100px; }
+}
+
+@media (max-height: 400px) {
+  .step-visual { min-height: 80px; }
+}

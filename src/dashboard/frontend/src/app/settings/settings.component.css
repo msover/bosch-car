@@ -1,0 +1,602 @@
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.settings-dialog {
+  background: rgb(45, 54, 58);
+  color: white;
+  width: min(1120px, 95vw);
+  height: min(800px, 90vh);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: clamp(10px, 1.2vw, 14px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  margin-bottom: 6px;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: clamp(15px, 1.7vw, 18px);
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.settings-body {
+  font-size: 11px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.header-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.72);
+  width: 26px;
+  min-width: 26px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.header-close svg {
+  fill: currentColor;
+  width: 13px;
+  height: 13px;
+}
+
+.header-close:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* Layout Styles */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Divider line between sections */
+.settings-layout::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+@media (max-width: 1024px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  .settings-layout::before {
+    display: none;
+  }
+}
+
+/* Section Styles - Shared base for both sections */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  scrollbar-gutter: stable;
+}
+
+.left-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 0 9px 0 0;
+  scrollbar-gutter: stable;
+  gap: 10px;
+}
+
+.calibration-section {
+  min-height: 0;
+  overflow: visible;
+}
+
+.right-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 0 0 0 9px;
+  scrollbar-gutter: stable;
+  gap: 10px;
+}
+
+.subsection {
+  display: flex;
+  flex-direction: column;
+  padding: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  min-width: 0;
+}
+
+.subsection:last-child {
+  padding-bottom: 9px;
+}
+
+.calibration-related-subsection {
+  margin-top: 10px;
+}
+
+@media (max-width: 1024px) {
+
+  .left-section,
+  .right-section {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
+  .left-section,
+  .right-section {
+    gap: 10px;
+  }
+
+  .subsection {
+    padding: 9px;
+  }
+
+  .subsection:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+  letter-spacing: 0;
+  min-width: 0;
+}
+
+/* Button Styles */
+.btn-primary,
+.btn-secondary,
+.btn-success {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.btn-primary {
+  color: #7df9ff;
+  border-color: rgba(125, 249, 255, 0.22);
+  background: rgba(125, 249, 255, 0.04);
+}
+
+.btn-primary:hover {
+  color: #b9fdff;
+  border-color: rgba(125, 249, 255, 0.34);
+  background: rgba(125, 249, 255, 0.07);
+}
+
+.btn-secondary {
+  color: rgba(255, 255, 255, 0.72);
+  background: transparent;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.btn-secondary:disabled {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.26);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-success {
+  color: #52d273;
+  border-color: rgba(82, 210, 115, 0.22);
+  background: rgba(82, 210, 115, 0.04);
+}
+
+.btn-success:hover {
+  color: #7cf09b;
+  border-color: rgba(124, 240, 155, 0.3);
+  background: rgba(124, 240, 155, 0.06);
+}
+
+
+
+/* Calibration Info Styles */
+.calibration-info {
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.calibration-info p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.calibration-info ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.calibration-info li {
+  margin-bottom: 0.5rem;
+}
+
+/* Section info box - shared by both sections */
+.section-info {
+  padding: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-info p {
+  margin: 0 0 8px 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.section-info ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.section-info li {
+  margin-bottom: 0.5rem;
+}
+
+
+
+/* Ensure calibration component can properly position within settings */
+app-calibration {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+}
+
+/* Only apply flex behavior when calibration is active */
+.calibration-section.calibration-active app-calibration {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* When calibration is active, ensure proper container behavior */
+.calibration-section:has(app-calibration[show="true"]) {
+  position: relative;
+  z-index: 5;
+}
+
+/* Alternative approach for older browsers that don't support :has() */
+.calibration-section.calibration-active {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for both sections */
+.left-section::-webkit-scrollbar,
+.right-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.left-section::-webkit-scrollbar-track,
+.right-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.left-section::-webkit-scrollbar-thumb,
+.right-section::-webkit-scrollbar-thumb {
+  background: rgba(125, 249, 255, 0.24);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.left-section::-webkit-scrollbar-thumb:hover,
+.right-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 249, 255, 0.42);
+}
+
+/* For Firefox */
+.left-section,
+.right-section {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 249, 255, 0.24) transparent;
+}
+
+.settings-dialog ::ng-deep .calibration-modal,
+.settings-dialog ::ng-deep .update-card,
+.settings-dialog ::ng-deep .probe-results,
+.settings-dialog ::ng-deep .encoder-test-results,
+.settings-dialog ::ng-deep .firmware-details,
+.settings-dialog ::ng-deep .empty-state,
+.settings-dialog ::ng-deep .info-note {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  box-shadow: none;
+}
+
+.settings-dialog ::ng-deep .calibration-modal {
+  padding: 9px;
+}
+
+.settings-dialog ::ng-deep .wifi-settings,
+.settings-dialog ::ng-deep .update-manager,
+.settings-dialog ::ng-deep .local-firmware-settings {
+  padding: 0;
+  gap: 8px;
+}
+
+.settings-dialog ::ng-deep .probe-row,
+.settings-dialog ::ng-deep .encoder-test-row,
+.settings-dialog ::ng-deep .firmware-row,
+.settings-dialog ::ng-deep .card-actions {
+  gap: 6px;
+}
+
+.settings-dialog ::ng-deep .form-group label,
+.settings-dialog ::ng-deep .input-group label,
+.settings-dialog ::ng-deep .probe-controls label,
+.settings-dialog ::ng-deep .encoder-test-controls label,
+.settings-dialog ::ng-deep .firmware-controls label,
+.settings-dialog ::ng-deep .detail-label {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.settings-dialog ::ng-deep .storage-label,
+.settings-dialog ::ng-deep .detail-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-dialog ::ng-deep input,
+.settings-dialog ::ng-deep select,
+.settings-dialog ::ng-deep .form-input,
+.settings-dialog ::ng-deep .form-select,
+.settings-dialog ::ng-deep .probe-controls input,
+.settings-dialog ::ng-deep .encoder-test-controls input,
+.settings-dialog ::ng-deep .firmware-controls select {
+  min-height: 26px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10.5px;
+  outline: none;
+}
+
+.settings-dialog ::ng-deep input:focus,
+.settings-dialog ::ng-deep select:focus,
+.settings-dialog ::ng-deep .form-input:focus,
+.settings-dialog ::ng-deep .form-select:focus,
+.settings-dialog ::ng-deep .probe-controls input:focus,
+.settings-dialog ::ng-deep .encoder-test-controls input:focus,
+.settings-dialog ::ng-deep .firmware-controls select:focus {
+  border-color: rgba(125, 249, 255, 0.38);
+  box-shadow: 0 0 0 2px rgba(125, 249, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-dialog ::ng-deep button.btn,
+.settings-dialog ::ng-deep button.btn-primary,
+.settings-dialog ::ng-deep button.btn-secondary,
+.settings-dialog ::ng-deep button.btn-check,
+.settings-dialog ::ng-deep button.btn-update,
+.settings-dialog ::ng-deep button.btn-download,
+.settings-dialog ::ng-deep button.btn-flash,
+.settings-dialog ::ng-deep button.btn-refresh,
+.settings-dialog ::ng-deep button.probe-run,
+.settings-dialog ::ng-deep button.encoder-test-run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.settings-dialog ::ng-deep button.btn-primary,
+.settings-dialog ::ng-deep button.btn-download,
+.settings-dialog ::ng-deep button.btn-check,
+.settings-dialog ::ng-deep button.btn-refresh {
+  color: #7df9ff;
+  border-color: rgba(125, 249, 255, 0.22);
+  background: rgba(125, 249, 255, 0.04);
+}
+
+.settings-dialog ::ng-deep button.btn-update,
+.settings-dialog ::ng-deep button.btn-success {
+  color: #52d273;
+  border-color: rgba(82, 210, 115, 0.22);
+  background: rgba(82, 210, 115, 0.04);
+}
+
+.settings-dialog ::ng-deep button.btn-flash {
+  color: #ffb38a;
+  border-color: rgba(255, 179, 138, 0.26);
+  background: rgba(255, 179, 138, 0.08);
+}
+
+.settings-dialog ::ng-deep button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.settings-dialog ::ng-deep button:disabled {
+  cursor: not-allowed;
+  color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.settings-dialog ::ng-deep .status-message,
+.settings-dialog ::ng-deep .card-alert,
+.settings-dialog ::ng-deep .probe-status,
+.settings-dialog ::ng-deep .encoder-test-status,
+.settings-dialog ::ng-deep .success-message,
+.settings-dialog ::ng-deep .error-message {
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.settings-dialog ::ng-deep .step-description {
+  padding: 10px 11px;
+  border-left-color: #6cb7ff;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.settings-dialog ::ng-deep .step-description p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.settings-dialog ::ng-deep p,
+.settings-dialog ::ng-deep .detail-value,
+.settings-dialog ::ng-deep .result-row,
+.settings-dialog ::ng-deep .alert-text,
+.settings-dialog ::ng-deep .meta-text,
+.settings-dialog ::ng-deep .card-source,
+.settings-dialog ::ng-deep .empty-state {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.settings-dialog ::ng-deep .card-title,
+.settings-dialog ::ng-deep .section-title h4,
+.settings-dialog ::ng-deep .step-header h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+
+  .left-section::-webkit-scrollbar,
+  .right-section::-webkit-scrollbar {
+    width: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .step-inputs {
+    gap: 0.75rem;
+  }
+}
